@@ -1,0 +1,15 @@
+apply plugin: "scala"
+apply plugin: "application"
+
+repositories {
+    mavenCentral()
+}
+
+mainClassName = 'com.xebialabs.xlcopy.XLCopy'
+
+dependencies {
+    compile "org.scala-lang:scala-library:2.11.1"
+    compile "com.xebialabs.overthere:overthere:4.2.0"
+    compile "org.slf4j:slf4j-api:1.7.12"
+    runtime "ch.qos.logback:logback-classic:1.1.3"
+}
