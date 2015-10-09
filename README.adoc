@@ -1,0 +1,25 @@
+= XL Copy
+
+== Description
+This is a small utility application to test out the copying speed of Overthere/SSHJ.
+
+== Installation
+----
+$ ./gradlew clean distZip
+$ cd build/distributions
+$ unzip xl-copy.zip
+$ cd xl-copy
+$ bin/xl-copy ...
+----
+
+== Usage
+In order to run this, you need to provide the following arguments:
+
+----
+xl-copy [options] <source> <destination>
+  --host | -h <host>                 The host to connect to
+  --os | -o <operating_system>       One of 'UNIX', 'WINDOWS', 'ZOS' (default: 'UNIX')
+  --user | -u <user>                 The username to connect as
+  --password | -p <password>         The password for the user
+  --buffer-size | -b <buffersize>    The copy buffer size to use (in bytes)
+----
