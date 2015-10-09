@@ -1,11 +1,16 @@
 package com.xebialabs.xlcopy
 
 import java.io.File
+import java.time.{Duration, LocalTime, LocalDate}
 
 import com.xebialabs.overthere._
 import com.xebialabs.overthere.local.LocalFile
 import com.xebialabs.overthere.ssh.SshConnectionBuilder
 import com.xebialabs.xlcopy.OptionParser.{OptionMapBuilder, OptionMap}
+import net.schmizz.sshj.sftp.SFTPClient
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier
+import net.schmizz.sshj.{DefaultConfig, SSHClient}
+import org.slf4j.LoggerFactory
 
 object XLCopy {
 
@@ -45,7 +50,8 @@ object XLCopy {
         sys.exit(1)
       case _ =>
     }
-    
+
+
     val options: ConnectionOptions = new ConnectionOptions()
     options.set(ConnectionOptions.ADDRESS, map(Host))
     options.set(ConnectionOptions.OPERATING_SYSTEM, map.getOrElse(OperatingSystem, OperatingSystemFamily.UNIX))
@@ -58,9 +64,35 @@ object XLCopy {
     val connection: OverthereConnection = Overthere.getConnection(SshConnectionBuilder.SSH_PROTOCOL, options)
     try {
       val file: OverthereFile = connection.getFile(map(Destination).toString)
-      LocalFile.from(new File(map(Source).toString)).copyTo(file)
+      timed("Overthere/SSHJ", LocalFile.from(new File(map(Source).toString)).copyTo(file))
     } finally {
       connection.close()
     }
+
+    val config = new DefaultConfig
+    val client = new SSHClient(config)
+    client.addHostKeyVerifier(new PromiscuousVerifier)
+    client.connect(map(Host).asInstanceOf[String])
+    client.authPassword(map(User).asInstanceOf[String], map(Password).asInstanceOf[String].toCharArray)
+    val newSFTPClient: SFTPClient = client.newSFTPClient()
+    try {
+      timed("SSHJ", newSFTPClient.getFileTransfer.upload(map(Source).asInstanceOf[String], map(Destination).asInstanceOf[String]))
+    } finally {
+      newSFTPClient.close()
+      client.close()
+    }
   }
+
+  def timed(method: String, f: => Unit): Unit = {
+    val start = LocalTime.now()
+    try {
+      f
+    } finally {
+      val end = LocalTime.now()
+      val between: Duration = java.time.Duration.between(start, end)
+      logger.info(s"Copying using $method took ${between.getNano} nano-seconds (${between.getSeconds} seconds)")
+    }
+  }
+
+  val logger = LoggerFactory.getLogger(XLCopy.getClass)
 }
